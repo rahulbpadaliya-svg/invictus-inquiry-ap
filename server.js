@@ -10,23 +10,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ================= TEST ROUTE ================= */
+/* ================= ROOT TEST ROUTE ================= */
 app.get("/", (req, res) => {
-  res.send("Invictus Inquiry API Running ✅");
+  res.status(200).send("Invictus Inquiry API Running ✅");
 });
 
 /* ================= SUBMIT ROUTE ================= */
 app.post("/submit", async (req, res) => {
-  try {
 
+  console.log("Submit route hit ✅");
+
+  try {
     const { name, email, phone, message } = req.body;
 
-    /* ===== Basic Validation ===== */
     if (!name || !email || !phone || !message) {
       return res.status(400).json({ error: "All fields required" });
     }
 
-    /* ================= EMAIL SETUP ================= */
+    /* ================= EMAIL ================= */
     const transporter = nodemailer.createTransport({
       host: "smtp.zoho.in",
       port: 465,
@@ -37,34 +38,26 @@ app.post("/submit", async (req, res) => {
       }
     });
 
-    /* ===== Send Email to Owner ===== */
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: process.env.EMAIL_USER,
-      subject: "New Inquiry - Invictus Experiences",
-      html: `
-        <h2>New Inquiry Received</h2>
-        <p><b>Name:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p><b>Phone:</b> ${phone}</p>
-        <p><b>Message:</b> ${message}</p>
-      `
+      subject: "New Inquiry - Invictus",
+      html: `<h3>New Inquiry</h3>
+             <p>Name: ${name}</p>
+             <p>Email: ${email}</p>
+             <p>Phone: ${phone}</p>
+             <p>Message: ${message}</p>`
     });
 
-    /* ===== Send Email to User ===== */
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
-      subject: "Thank You for Contacting Invictus Experiences",
-      html: `
-        <h3>Hello ${name},</h3>
-        <p>Thank you for your inquiry. Our team will contact you shortly.</p>
-        <br>
-        <p><b>Invictus Experiences</b></p>
-      `
+      subject: "Thank You - Invictus Experiences",
+      html: `<h3>Hello ${name},</h3>
+             <p>Thank you for contacting us. We will connect soon.</p>`
     });
 
-    /* ================= WHATSAPP SEND ================= */
+    /* ================= WHATSAPP ================= */
     await axios.post(
       `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
       {
@@ -72,10 +65,7 @@ app.post("/submit", async (req, res) => {
         to: phone,
         type: "text",
         text: {
-          body: `Hello ${name} 👋
-
-Thank you for contacting Invictus Experiences.
-Our team will connect with you shortly!`
+          body: `Hello ${name} 👋\nThank you for contacting Invictus Experiences.`
         }
       },
       {
@@ -86,15 +76,15 @@ Our team will connect with you shortly!`
       }
     );
 
-    res.json({ success: true });
+    return res.status(200).json({ success: true });
 
   } catch (error) {
-    console.error("Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Server Error" });
+    console.error("ERROR:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Server Error" });
   }
 });
 
-/* ================= PORT (IMPORTANT FOR RENDER) ================= */
+/* ================= PORT (MANDATORY FOR RENDER) ================= */
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
